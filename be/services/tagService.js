@@ -8,7 +8,7 @@ const tagService = {
   },
   
   saveTags : async (articleId, tags) => {
-   await Tag.saveTags(articleId, tags);
+    await Tag.saveTags(articleId, tags);
   },
 
   removeTagsByArticleId: async (article_id) => {
@@ -38,7 +38,6 @@ const tagService = {
       conn.release();
     }
   },
-
 
   getTagRecommend: async (user_id, content) => {
     const tags = new Set();
@@ -71,8 +70,18 @@ const tagService = {
     } catch (err) {
       throw err;
     }
+  },
+
+  // ✅ 이 부분이 마지막에 정확히 들어가야 함!
+  getArticleIdsByTag: async (tagName) => {
+    const [rows] = await db.query(
+      `SELECT article_id FROM article_tag at
+       JOIN tag t ON at.tag_id = t.tag_id
+       WHERE t.name = ?`,
+      [tagName]
+    );
+    return rows.map(row => row.article_id);
   }
-  
 };
 
 module.exports = tagService;

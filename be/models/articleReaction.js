@@ -26,6 +26,14 @@ const ArticleReaction = {
       [article_id]
     );
     return rows;
+  },
+
+  countByArticleId: async (article_id) => {
+    const [rows] = await db.query(
+      'SELECT COUNT(*) AS count FROM article_reaction WHERE article_id = ?',
+      [article_id]
+    );
+    return rows[0].count;
   }
 };
 

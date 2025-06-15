@@ -21,6 +21,7 @@ const storage = multer.diskStorage({
 const uploadFile = multer({ storage });
 
 router.post('/', uploadFile.array('img', 30), articleController.createArticle);
+
 router.post('/recommend', async (req, res) => {
   try {
     const { user_id, content } = req.body;
@@ -31,9 +32,16 @@ router.post('/recommend', async (req, res) => {
     res.status(500).json({ error: '추천 태그 조회 실패' });
   }
 });
+
 router.put('/:id', uploadFile.array('img', 30), articleController.updateArticle);
 router.delete('/:id', articleController.deleteArticle);
+
+router.get('/tag/:tag', articleController.getArticlesByTag);
+
 router.get('/:id', articleController.getArticleById);
 router.get('/', articleController.getAllArticles);
+router.get('/search', articleController.searchArticlesByTags);
+
 
 module.exports = router;
+

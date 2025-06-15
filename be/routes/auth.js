@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser } = require('../controllers/authController.js');
+const { registerUser, loginUser, getMyInfo } = require('../controllers/authController.js');
 
-// 회원가입
 router.post('/register', registerUser);
-
-// 로그인
 router.post('/login', loginUser);
+router.get('/me', getMyInfo); 
 
 module.exports = router;

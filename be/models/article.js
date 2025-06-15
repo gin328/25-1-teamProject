@@ -26,14 +26,31 @@ const Article = {
     return result.affectedRows;
   },
 
-    findAll: async () => {
-    const [rows] = await db.query('SELECT * FROM article ORDER BY created_at DESC');
-    return rows;
+  findAll: async () => {
+    try {
+      const [rows] = await db.query('SELECT * FROM article ORDER BY created_at DESC');
+      console.log('조회된 게시글:', rows);
+      return rows;
+    } catch (err) {
+      console.error('findAll 오류 발생:', err);
+      throw err;
+    }
   },
 
   findById: async (id) => {
     const [rows] = await db.query('SELECT * FROM article WHERE article_id = ?', [id]);
     return rows[0];
+  },
+
+  findByIds: async (ids) => {
+    if (ids.length === 0) return [];
+
+    const placeholders = ids.map(() => '?').join(',');
+    const [rows] = await db.query(
+      `SELECT * FROM article WHERE article_id IN (${placeholders}) ORDER BY created_at DESC`,
+      ids
+    );
+    return rows;
   }
 };
 

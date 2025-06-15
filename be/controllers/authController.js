@@ -19,7 +19,6 @@ exports.registerUser = async (req, res) => {
     dog_char
   } = req.body;
 
-  // 400: 필수 입력값 누락
   if (!email || !password || !nickname || !village || !dog_name) {
     return res.status(400).json({ message: '필수 입력값이 누락되었습니다.' });
   }
@@ -27,7 +26,6 @@ exports.registerUser = async (req, res) => {
   try {
     const conn = await pool.getConnection();
 
-    // 409: 이메일 중복 체크
     const [existingUser] = await conn.query(
       'SELECT * FROM users WHERE email = ?',
       [email]
@@ -37,10 +35,8 @@ exports.registerUser = async (req, res) => {
       return res.status(409).json({ message: '이미 등록된 이메일입니다.' });
     }
 
-    // 비밀번호 해싱
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // users 테이블에 사용자 추가
     const [userResult] = await conn.query(
       `INSERT INTO users (email, passwd, nickname, village) VALUES (?, ?, ?, ?)`,
       [email, hashedPassword, nickname, village]
@@ -48,7 +44,6 @@ exports.registerUser = async (req, res) => {
 
     const userId = userResult.insertId;
 
-    // dogs 테이블에 반려견 정보 추가
     await conn.query(
       `INSERT INTO dogs 
         (user_id, dog_name, dog_gender, dog_desexed, dog_type, dog_weight, dog_age, dog_char) 
@@ -77,7 +72,6 @@ exports.registerUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
-  // 400: 입력값 누락
   if (!email || !password) {
     return res.status(400).json({ message: '이메일과 비밀번호를 모두 입력하세요.' });
   }
@@ -85,7 +79,6 @@ exports.loginUser = async (req, res) => {
   try {
     const conn = await pool.getConnection();
 
-    // 사용자 조회
     const [rows] = await conn.query(
       'SELECT * FROM users WHERE email = ?',
       [email]
@@ -97,14 +90,12 @@ exports.loginUser = async (req, res) => {
 
     const user = rows[0];
 
-    // 비밀번호 비교
     const isMatch = await bcrypt.compare(password, user.passwd);
     if (!isMatch) {
       conn.release();
       return res.status(401).json({ message: '비밀번호가 일치하지 않습니다.' });
     }
 
-    // JWT 토큰 발급
     const token = jwt.sign(
       { userId: user.user_id, email: user.email },
       process.env.JWT_SECRET,
@@ -116,5 +107,33 @@ exports.loginUser = async (req, res) => {
   } catch (err) {
     console.error('로그인 오류:', err);
     return res.status(500).json({ message: '서버 내부 오류입니다.' });
+  }
+};
+
+// ✅ 현재 로그인한 유저 정보 조회 (지역 포함)
+exports.getMyInfo = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: '토큰 없음' });
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.userId;
+
+    const conn = await pool.getConnection();
+    const [rows] = await conn.query(
+      'SELECT user_id, email, nickname, village FROM users WHERE user_id = ?',
+      [userId]
+    );
+    conn.release();
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: '사용자 정보를 찾을 수 없습니다.' });
+    }
+
+    res.status(200).json(rows[0]);
+  } catch (err) {
+    console.error('유저 정보 조회 실패:', err);
+    res.status(500).json({ message: '서버 오류로 사용자 정보를 불러올 수 없습니다.' });
   }
 };
