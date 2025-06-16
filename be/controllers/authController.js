@@ -60,8 +60,34 @@ exports.registerUser = async (req, res) => {
       ]
     );
 
+    // 🔍 새로 등록된 유저 정보 불러오기
+    const [userRows] = await conn.query(
+      'SELECT user_id, email, nickname, village FROM users WHERE user_id = ?',
+      [userId]
+    );
+
     conn.release();
-    return res.status(201).json({ message: '회원가입이 완료되었습니다.' });
+
+    const user = userRows[0];
+
+    // ✅ 토큰 생성
+    const token = jwt.sign(
+      { userId: user.user_id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // ✅ user + token 함께 응답
+    return res.status(201).json({
+      message: '회원가입이 완료되었습니다.',
+      token,
+      user: {
+        id: user.user_id,
+        email: user.email,
+        nickname: user.nickname,
+        village: user.village
+      }
+    });
   } catch (err) {
     console.error('회원가입 오류:', err);
     return res.status(500).json({ message: '서버 내부 오류입니다.' });
@@ -103,12 +129,24 @@ exports.loginUser = async (req, res) => {
     );
 
     conn.release();
-    return res.status(200).json({ message: '로그인 성공', token });
+
+    // ✅ user 정보 포함 응답
+    return res.status(200).json({
+      message: '로그인 성공',
+      token,
+      user: {
+        id: user.user_id,
+        email: user.email,
+        nickname: user.nickname,
+        village: user.village
+      }
+    });
   } catch (err) {
     console.error('로그인 오류:', err);
     return res.status(500).json({ message: '서버 내부 오류입니다.' });
   }
 };
+
 
 // ✅ 현재 로그인한 유저 정보 조회 (지역 포함)
 exports.getMyInfo = async (req, res) => {

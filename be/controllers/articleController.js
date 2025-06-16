@@ -105,17 +105,19 @@ const articleController = {
   },
 
   getArticleById: async (req, res) => {
-    try {
-      const id = req.params.id;
-      const article = await Article.findById(id);
-      if (!article) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' });
+  try {
+    const id = req.params.id;
+    const article = await Article.findById(id);
+    if (!article) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' });
 
-      const tags = await tagService.getTagsByArticleId(id);
-      res.json({ ...article, tags });
-    } catch (err) {
-      console.error('조회 중 오류 발생:', err);
-      res.status(500).json({ error: '조회에 실패했습니다.' });
-    }
+    const tags = await tagService.getTagsByArticleId(id);
+    const commentCount = await Comment.countByArticleId(id); // 추가
+
+    res.json({ ...article, tags, commentCount }); // 댓글 수도 포함시켜 응답
+  } catch (err) {
+    console.error('조회 중 오류 발생:', err);
+    res.status(500).json({ error: '조회에 실패했습니다.' });
+  }
   },
 
   getArticlesByTag: async (req, res) => {

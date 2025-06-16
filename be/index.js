@@ -4,6 +4,8 @@ const app = express();
 const port = 3000;
 const commentRoutes = require('./routes/commentRoutes');
 const cors = require('cors');
+const commentReactionRoutes = require('./routes/commentReactions');
+
 
 app.use(cors());
 
@@ -17,6 +19,8 @@ const articleRoutes = require('./routes/articles');
 app.use('/auth', authRoutes);
 app.use('/articles', articleRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/comment-reactions', commentReactionRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('서버 정상 작동 중!');

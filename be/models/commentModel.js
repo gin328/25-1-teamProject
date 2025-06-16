@@ -18,3 +18,12 @@ exports.countByArticleId = async (article_id) => {
   );
   return rows[0].count;
 };
+
+exports.findByArticleId = async (article_id) => {
+  const [rows] = await db.query(
+    'SELECT * FROM comment WHERE article_id = ? ORDER BY created_at ASC',
+    [article_id]
+  );
+  return rows;
+};
+
