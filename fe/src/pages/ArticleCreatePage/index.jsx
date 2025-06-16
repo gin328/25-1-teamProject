@@ -1,18 +1,28 @@
-// src/pages/ArticleCreatePage/ArticleCreatePage.jsx
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
 
 const ArticleCreatePage = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = user?.id;
+  const navigate = useNavigate();
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [hashtags, setHashtags] = useState("");
 
-  const userId = localStorage.getItem("user_id");
-  const navigate = useNavigate();
+  // ❗️비로그인 차단 처리
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <div className="max-w-3xl mx-auto p-6 text-center text-red-500">
+          로그인 후 이용해 주세요.
+        </div>
+      </div>
+    );
+  }
 
-  // 해시태그 문자열 → 배열로 파싱
   const parseHashtags = (input) => {
     return input
       .split(",")
@@ -37,7 +47,6 @@ const ArticleCreatePage = () => {
     }
   };
 
-  // ⏱ 입력 멈춤 후 자동 해시태그 추천
   useEffect(() => {
     const delay = setTimeout(() => {
       if (userId && (title || content)) {
@@ -47,7 +56,6 @@ const ArticleCreatePage = () => {
     return () => clearTimeout(delay);
   }, [title, content]);
 
-  // ✅ 글 등록 API 요청
   const handleSubmit = async (e) => {
     e.preventDefault();
     const tagArray = parseHashtags(hashtags);
@@ -66,7 +74,7 @@ const ArticleCreatePage = () => {
 
       if (res.ok) {
         console.log("✅ 글 등록 성공");
-        navigate(-1); // ✅ 이전 페이지로 돌아가기
+        navigate(-1);
       } else {
         const error = await res.json();
         console.error("❌ 글 등록 실패:", error);
@@ -81,7 +89,6 @@ const ArticleCreatePage = () => {
   return (
     <div>
       <Header />
-
       <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-4">글 작성하기</h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
