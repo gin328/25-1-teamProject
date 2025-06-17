@@ -8,11 +8,11 @@ const SearchResultPage = () => {
   const [otherTags, setOtherTags] = useState([]);
   const [articles, setArticles] = useState([]);
 
+  // ✅ 로그인한 유저의 지역명 받아오기
   useEffect(() => {
-    // ✅ 1. 로그인한 유저의 지역명 받아오기
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("http://localhost:3000/auth/me", {
+      fetch("http://localhost:3000/api/auth/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -21,21 +21,38 @@ const SearchResultPage = () => {
         .then((data) => {
           if (data.village) {
             setRegionTag(`#${data.village}`);
+            localStorage.setItem("village", data.village);
           }
         })
         .catch((err) => console.error("유저 지역 정보 조회 실패:", err));
     }
   }, []);
 
+  // ✅ URL 태그 파라미터 처리 및 게시글 검색
   useEffect(() => {
-    // ✅ 2. URL에서 태그 읽기
     const searchParams = new URLSearchParams(window.location.search);
-    const tags = searchParams.getAll("tag");
-    setOtherTags(tags.map((t) => `#${t}`));
+    const tagParams = searchParams.getAll("tag");
 
-    // ✅ 3. 해당 태그로 API 요청
-    if (tags.length > 0) {
-      const queryString = tags.map((tag) => `tag=${tag}`).join("&");
+    const filteredTags = tagParams
+      .map((t) => t.trim())
+      .filter((t) => t && t !== "undefined" && t !== "없습니다");
+
+    // ✅ 기타 해시태그: 지역 태그 제외
+    const region = localStorage.getItem("village");
+    const regionTagStr = region ? `#${region}` : null;
+
+    const finalOtherTags = filteredTags
+      .map((t) => `#${t}`)
+      .filter((tag) => tag !== regionTagStr);
+
+    setOtherTags(finalOtherTags);
+
+    // ✅ 게시글 검색 API 요청
+    if (filteredTags.length > 0) {
+      const queryString = filteredTags
+        .map((tag) => `tag=${encodeURIComponent(tag)}`)
+        .join("&");
+
       fetch(`http://localhost:3000/api/articles/search?${queryString}`)
         .then((res) => res.json())
         .then((data) => setArticles(data))
@@ -66,3 +83,4 @@ const SearchResultPage = () => {
 };
 
 export default SearchResultPage;
+

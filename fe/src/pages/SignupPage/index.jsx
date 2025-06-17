@@ -25,9 +25,16 @@ const SignupPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("/auth/register", formData);
+      const patchedFormData = {
+        ...formData,
+        dog_desexed: parseInt(formData.dog_desexed),
+        dog_weight: formData.dog_weight === "" ? null : parseInt(formData.dog_weight),
+        dog_age: formData.dog_age === "" ? null : parseInt(formData.dog_age),
+        dog_char: formData.dog_char === "" ? null : formData.dog_char,
+      };
 
-      // ✅ 응답에서 user와 token 저장
+      const res = await axios.post("/api/auth/register", patchedFormData);
+
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
@@ -35,6 +42,7 @@ const SignupPage = () => {
       window.location.href = "/login";
     } catch (err) {
       alert(err.response?.data?.message || "회원가입 실패");
+      console.error(err);
     }
   };
 
@@ -105,6 +113,7 @@ const SignupPage = () => {
           {/* 반려견 정보 섹션 */}
           <div className="border p-4 rounded-md space-y-4">
             <h2 className="text-lg font-semibold mb-2 mt-6">반려견 정보</h2>
+
             <div>
               <label className="block text-sm font-medium">
                 1. 반려견 이름 <span className="text-red-500">*</span>
@@ -119,22 +128,30 @@ const SignupPage = () => {
 
             <div>
               <label className="block text-sm font-medium">2. 성별</label>
-              <input
+              <select
                 name="dog_gender"
                 value={formData.dog_gender}
                 onChange={handleChange}
                 className="w-full border px-3 py-2 rounded"
-              />
+              >
+                <option value="">-- 선택하세요 --</option>
+                <option value="수컷">수컷</option>
+                <option value="암컷">암컷</option>
+              </select>
             </div>
 
             <div>
               <label className="block text-sm font-medium">3. 중성화 여부</label>
-              <input
+              <select
                 name="dog_desexed"
                 value={formData.dog_desexed}
                 onChange={handleChange}
                 className="w-full border px-3 py-2 rounded"
-              />
+              >
+                <option value="">-- 선택하세요 --</option>
+                <option value="1">예 (중성화 완료)</option>
+                <option value="0">아니오 (미중성화)</option>
+              </select>
             </div>
 
             <div>
@@ -148,24 +165,32 @@ const SignupPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium">5. 몸무게</label>
+              <label className="block text-sm font-medium">5. 몸무게 (kg)</label>
               <input
+                type="number"
                 name="dog_weight"
                 value={formData.dog_weight}
                 onChange={handleChange}
                 className="w-full border px-3 py-2 rounded"
+                min="0"
+                step="0.1"
+                placeholder="예: 5.3"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium">6. 나이</label>
+              <label className="block text-sm font-medium">6. 나이 (살)</label>
               <input
+                type="number"
                 name="dog_age"
                 value={formData.dog_age}
                 onChange={handleChange}
                 className="w-full border px-3 py-2 rounded"
+                min="0"
+                placeholder="예: 3"
               />
             </div>
+
 
             <div>
               <label className="block text-sm font-medium">7. 성격</label>

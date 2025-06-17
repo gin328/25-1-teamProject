@@ -26,7 +26,12 @@ const ArticleCardForSearch = ({
         <div>
           <div className="text-sm font-medium">{userNickname}</div>
           <div className="text-xs text-gray-600">
-            {hashtags.map(tag => `#${tag}`).join(" ")}
+            {
+              hashtags.map(tag => {
+                const name = typeof tag === "string" ? tag : tag.tag_name;
+                return name.startsWith("#") ? name : `#${name}`;
+              }).join(" ")
+            }
           </div>
         </div>
       </div>

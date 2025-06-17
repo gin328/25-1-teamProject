@@ -8,19 +8,25 @@ const ArticleList = () => {
 
   useEffect(() => {
     const fetchArticles = async () => {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const userId = user?.id;
+
+      if (!userId) {
+        console.warn("⚠️ 로그인 정보 없음: user_id가 없습니다.");
+        setError(true);
+        return;
+      }
+
       try {
-        const response = await axios.get("/api/articles");
+        const response = await axios.get(`http://localhost:3000/api/articles?user_id=${userId}`);
         console.log("✅ 받아온 글 목록:", response.data);
 
-        const sorted = [...response.data]
-          .filter((a) => a.createdAt)
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
+        const sorted = [...response.data]; // 정렬은 필요 시 추가
         const topThree = sorted.slice(0, 3);
 
         while (topThree.length < 3) {
           topThree.push({
-            article_id: -1, // ✅ 더미 카드 구분용
+            article_id: -1,
             tag: "",
             location: "",
             user: "",
@@ -45,7 +51,7 @@ const ArticleList = () => {
       tag: "",
       location: "",
       user: "",
-      title: "아직 백엔드 연결이 안됨.",
+      title: "가져올 수 있는 글이 없습니다.",
       content: "가져올 수 있는 글이 없습니다.",
     },
     {
@@ -53,7 +59,7 @@ const ArticleList = () => {
       tag: "",
       location: "",
       user: "",
-      title: "아직 백엔드 연결이 안됨.",
+      title: "가져올 수 있는 글이 없습니다.",
       content: "가져올 수 있는 글이 없습니다.",
     },
     {
@@ -61,7 +67,7 @@ const ArticleList = () => {
       tag: "",
       location: "",
       user: "",
-      title: "아직 백엔드 연결이 안됨.",
+      title: "가져올 수 있는 글이 없습니다.",
       content: "가져올 수 있는 글이 없습니다.",
     },
   ];

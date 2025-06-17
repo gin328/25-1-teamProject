@@ -1,18 +1,44 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
 
 const Header = () => {
   const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem("token");
+  const location = useLocation();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, [location]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    localStorage.removeItem("region");
+    localStorage.removeItem("village"); // ✅ 수정됨
     alert("로그아웃 되었습니다.");
     navigate("/");
-    window.location.reload();
+  };
+
+  const handleLogin = () => {
+    navigate("/login");
+  };
+
+  const handleSearch = () => {
+    const query = searchInput.trim();
+    const village = localStorage.getItem("village");
+
+    const tags = [
+      village && village !== "없습니다" ? `tag=${encodeURIComponent(village)}` : null,
+      query ? `tag=${encodeURIComponent(query)}` : null,
+    ]
+      .filter(Boolean)
+      .join("&");
+
+    if (tags) {
+      navigate(`/search?${tags}`);
+    }
   };
 
   return (
@@ -30,14 +56,13 @@ const Header = () => {
           <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
           <input
             type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="검색하고 싶은 해시태그가 있나요?"
             className="w-full pl-10 pr-4 py-2 text-xs rounded-full bg-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-300"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                const query = e.target.value.trim();
-                if (query) {
-                  navigate(`/search?tag=${encodeURIComponent(query)}`);
-                }
+                handleSearch(); // ✅ 지역 + 검색어 포함
               }
             }}
           />
@@ -54,7 +79,7 @@ const Header = () => {
         ) : (
           <button
             className="hover:underline text-sm whitespace-nowrap"
-            onClick={() => navigate("/login")}
+            onClick={handleLogin}
           >
             로그인
           </button>

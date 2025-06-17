@@ -5,9 +5,9 @@ import { useNavigate } from "react-router-dom";
 
 const MyPage = () => {
   const [articles, setArticles] = useState([]);
-  const [pets, setPets] = useState([]);
-  const [showPetForm, setShowPetForm] = useState(false);
-  const [newPet, setNewPet] = useState({
+  const [dogs, setDogs] = useState([]);
+  const [showDogForm, setShowDogForm] = useState(false);
+  const [newDog, setNewDog] = useState({
     name: "",
     breed: "",
     birth: "",
@@ -17,22 +17,21 @@ const MyPage = () => {
     note: "",
   });
 
-const navigate = useNavigate();
-const user = JSON.parse(localStorage.getItem("user"));
-const userId = user?.id;
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = user?.id;
 
-if (!userId) {
-  return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <div className="max-w-3xl mx-auto p-6 text-center text-red-500">
-        로그인 후 이용해 주세요.
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Header />
+        <div className="max-w-3xl mx-auto p-6 text-center text-red-500">
+          로그인 후 이용해 주세요.
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-  // 데이터 로딩
   useEffect(() => {
     const fetchArticles = async () => {
       try {
@@ -43,34 +42,42 @@ if (!userId) {
       }
     };
 
-    const fetchPets = async () => {
+    const fetchDogs = async () => {
       try {
-        const res = await axios.get(`/api/pets?user_id=${userId}`);
-        setPets(res.data);
+        const res = await axios.get(`/api/dogs?user_id=${userId}`);
+        setDogs(res.data);
       } catch (err) {
         console.error("반려견 목록 로딩 실패:", err);
       }
     };
 
     fetchArticles();
-    fetchPets();
-  }, []);
+    fetchDogs();
+  }, [userId]);
 
-  // 반려견 폼 입력 핸들러
-  const handlePetChange = (e) => {
+  const handleDogChange = (e) => {
     const { name, value } = e.target;
-    setNewPet((prev) => ({ ...prev, [name]: value }));
+    setNewDog((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 반려견 등록
-  const handleAddPet = async (e) => {
+  const handleAddDog = async (e) => {
     e.preventDefault();
     try {
-      await axios.post("/api/pets", {
+      await axios.post("/api/dogs", {
         user_id: userId,
-        ...newPet,
+        dog_name: newDog.name,
+        dog_type: newDog.breed,
+        dog_age: null,
+        dog_gender: newDog.gender,
+        dog_weight: parseFloat(newDog.weight),
+        dog_desexed: newDog.neutered === "예",
+        dog_char: newDog.note,
+        dog_img: null,
+        is_public: true,
+        is_representative: false,
       });
-      setNewPet({
+
+      setNewDog({
         name: "",
         breed: "",
         birth: "",
@@ -79,9 +86,9 @@ if (!userId) {
         neutered: "",
         note: "",
       });
-      setShowPetForm(false); // 폼 닫기
-      const res = await axios.get(`/api/pets?user_id=${userId}`);
-      setPets(res.data);
+      setShowDogForm(false);
+      const res = await axios.get(`/api/dogs?user_id=${userId}`);
+      setDogs(res.data);
     } catch (err) {
       console.error("반려견 등록 실패:", err);
     }
@@ -98,13 +105,21 @@ if (!userId) {
             {Array.isArray(articles) && articles.length > 0 ? (
               articles.map((article) => (
                 <li
-                  key={article.id}
-                  onClick={() => navigate(`/articles/${article.id}`)}
+                  key={article.article_id}
+                  onClick={() => navigate(`/articles/${article.article_id}`)}
                   className="p-4 border rounded hover:bg-gray-100 cursor-pointer"
                 >
                   <div className="font-semibold">{article.title}</div>
                   <div className="text-sm text-gray-500">
-                    {article.tags?.join(" ")} | ❤️ {article.likes} | 💬 {article.comments}
+                    {
+                      article.tags
+                        ?.map((tag) => {
+                          const name = typeof tag === "string" ? tag : tag.tag_name;
+                          return name.startsWith("#") ? name : `#${name}`;
+                        })
+                        .join(" ")
+                    }{" "}
+                    | ❤️ {article.likes} | 💬 {article.comments}
                   </div>
                 </li>
               ))
@@ -118,10 +133,12 @@ if (!userId) {
         <section className="mb-6">
           <h2 className="text-xl font-bold mb-4">🐶 내 반려견</h2>
           <ul className="space-y-2">
-            {Array.isArray(pets) && pets.length > 0 ? (
-              pets.map((pet) => (
-                <li key={pet.id} className="p-3 border rounded bg-gray-50">
-                  <div className="font-medium">{pet.name} ({pet.breed || "품종 미입력"})</div>
+            {Array.isArray(dogs) && dogs.length > 0 ? (
+              dogs.map((dog) => (
+                <li key={dog.dog_id} className="p-3 border rounded bg-gray-50">
+                  <div className="font-medium">
+                    {dog.dog_name} ({dog.dog_type || "품종 미입력"})
+                  </div>
                 </li>
               ))
             ) : (
@@ -130,17 +147,17 @@ if (!userId) {
           </ul>
         </section>
 
-        {/* 반려견 추가 버튼 + 폼 */}
+        {/* 반려견 추가 폼 */}
         <section>
           <button
-            onClick={() => setShowPetForm(!showPetForm)}
+            onClick={() => setShowDogForm(!showDogForm)}
             className="mb-4 px-4 py-2 bg-gray-200 text-gray-800 rounded"
           >
-            {showPetForm ? "➖ 반려견 추가 닫기" : "➕ 반려견 추가"}
+            {showDogForm ? "➖ 반려견 추가 닫기" : "➕ 반려견 추가"}
           </button>
 
-          {showPetForm && (
-            <form onSubmit={handleAddPet} className="space-y-3 p-4 border rounded bg-gray-50">
+          {showDogForm && (
+            <form onSubmit={handleAddDog} className="space-y-3 p-4 border rounded bg-gray-50">
               <p className="text-sm text-gray-600 mb-2">*이 붙은 문항은 필수 입력 요소입니다.</p>
 
               <div>
@@ -150,8 +167,8 @@ if (!userId) {
                 <input
                   type="text"
                   name="name"
-                  value={newPet.name}
-                  onChange={handlePetChange}
+                  value={newDog.name}
+                  onChange={handleDogChange}
                   required
                   className="w-full border p-2 rounded"
                 />
@@ -162,8 +179,8 @@ if (!userId) {
                 <input
                   type="text"
                   name="breed"
-                  value={newPet.breed}
-                  onChange={handlePetChange}
+                  value={newDog.breed}
+                  onChange={handleDogChange}
                   className="w-full border p-2 rounded"
                 />
               </div>
@@ -173,8 +190,8 @@ if (!userId) {
                 <input
                   type="date"
                   name="birth"
-                  value={newPet.birth}
-                  onChange={handlePetChange}
+                  value={newDog.birth}
+                  onChange={handleDogChange}
                   className="w-full border p-2 rounded"
                 />
               </div>
@@ -183,8 +200,8 @@ if (!userId) {
                 <label className="block font-medium">4. 성별</label>
                 <select
                   name="gender"
-                  value={newPet.gender}
-                  onChange={handlePetChange}
+                  value={newDog.gender}
+                  onChange={handleDogChange}
                   className="w-full border p-2 rounded"
                 >
                   <option value="">선택</option>
@@ -198,8 +215,8 @@ if (!userId) {
                 <input
                   type="number"
                   name="weight"
-                  value={newPet.weight}
-                  onChange={handlePetChange}
+                  value={newDog.weight}
+                  onChange={handleDogChange}
                   step="0.1"
                   className="w-full border p-2 rounded"
                 />
@@ -209,8 +226,8 @@ if (!userId) {
                 <label className="block font-medium">6. 중성화 여부</label>
                 <select
                   name="neutered"
-                  value={newPet.neutered}
-                  onChange={handlePetChange}
+                  value={newDog.neutered}
+                  onChange={handleDogChange}
                   className="w-full border p-2 rounded"
                 >
                   <option value="">선택</option>
@@ -223,8 +240,8 @@ if (!userId) {
                 <label className="block font-medium">7. 특이사항</label>
                 <textarea
                   name="note"
-                  value={newPet.note}
-                  onChange={handlePetChange}
+                  value={newDog.note}
+                  onChange={handleDogChange}
                   rows={3}
                   className="w-full border p-2 rounded"
                   placeholder="예: 낯가림 있음, 병력 등"

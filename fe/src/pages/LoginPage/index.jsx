@@ -1,5 +1,5 @@
-// src/pages/LoginPage.jsx
-import React, { useState } from "react";
+// src/pages/LoginPage/index.jsx
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Header from "../../components/Header";
@@ -9,17 +9,33 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      alert("이미 로그인되어 있습니다.");
+      navigate("/");
+    }
+  }, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("/auth/login", {
+      const res = await axios.post("/api/auth/login", {
         email,
         password,
       });
+
+      console.log("로그인 응답:", res.data); // ✅ 이 줄 추가!
+
       const token = res.data.token;
-      localStorage.setItem("user", JSON.stringify(res.data.user));
+      const user = res.data.user;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("village", user.village);
+
       alert("로그인 성공!");
-      navigate("/"); // 메인페이지로 이동
+      navigate("/");
     } catch (err) {
       console.error("로그인 실패:", err);
       alert("이메일 또는 비밀번호가 올바르지 않습니다.");

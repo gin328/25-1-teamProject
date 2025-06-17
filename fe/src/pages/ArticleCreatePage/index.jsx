@@ -68,7 +68,7 @@ const ArticleCreatePage = () => {
           user_id: userId,
           title,
           content,
-          tags: tagArray,
+          hashtags: JSON.stringify(tagArray), // ✅ 핵심 수정
         }),
       });
 
