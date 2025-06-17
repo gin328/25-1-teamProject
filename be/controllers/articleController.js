@@ -1,11 +1,9 @@
 const Article = require('../models/article');
 const tagService = require('../services/tagService');
-const User = require('../models/user');
-const Reaction = require('../models/reaction');
-const Comment = require('../models/comment');
 const User = require('../models/userModel');
 const Reaction = require('../models/articleReaction');
 const Comment = require('../models/commentModel');
+
 
 
 const articleController = {
