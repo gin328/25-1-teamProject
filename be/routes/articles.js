@@ -3,10 +3,8 @@ const multer = require('multer');
 const path = require('path');
 const articleController = require('../controllers/articleController');
 const tagService = require('../services/tagService');
-const router = express.Router();
-
 const reactionRouter = require('./articleReact');
-router.use('/:articleId/reactions', reactionRouter);
+const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -19,6 +17,9 @@ const storage = multer.diskStorage({
 });
 
 const uploadFile = multer({ storage });
+
+// /search 라우트를 가장 위로 이동
+router.get('/search', articleController.searchArticlesByTags);
 
 router.post('/', uploadFile.array('img', 30), articleController.createArticle);
 
@@ -34,14 +35,17 @@ router.post('/recommend', async (req, res) => {
 });
 
 router.put('/:id', uploadFile.array('img', 30), articleController.updateArticle);
-router.delete('/:id', articleController.deleteArticle);
+
+// ✅ 삭제 요청 로그 추가
+router.delete('/:id', (req, res, next) => {
+  console.log('🧨 DELETE 요청 수신됨, 게시글 ID:', req.params.id);
+  next();
+}, articleController.deleteArticle);
 
 router.get('/tag/:tag', articleController.getArticlesByTag);
-
+router.get('/', articleController.getArticlesByUser);
 router.get('/:id', articleController.getArticleById);
-router.get('/', articleController.getAllArticles);
-router.get('/search', articleController.searchArticlesByTags);
 
+router.use('/:articleId/reactions', reactionRouter);
 
 module.exports = router;
-

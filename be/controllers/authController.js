@@ -116,7 +116,14 @@ exports.loginUser = async (req, res) => {
 
     const user = rows[0];
 
+    // ✅ 디버깅용 로그 추가
+    console.log("입력된 비밀번호:", password);
+    console.log("DB에 저장된 해시:", user.passwd);
+
     const isMatch = await bcrypt.compare(password, user.passwd);
+
+    console.log("비밀번호 비교 결과:", isMatch); // true/false 나옴
+
     if (!isMatch) {
       conn.release();
       return res.status(401).json({ message: '비밀번호가 일치하지 않습니다.' });
@@ -130,7 +137,6 @@ exports.loginUser = async (req, res) => {
 
     conn.release();
 
-    // ✅ user 정보 포함 응답
     return res.status(200).json({
       message: '로그인 성공',
       token,
@@ -146,6 +152,7 @@ exports.loginUser = async (req, res) => {
     return res.status(500).json({ message: '서버 내부 오류입니다.' });
   }
 };
+
 
 
 // ✅ 현재 로그인한 유저 정보 조회 (지역 포함)

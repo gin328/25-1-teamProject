@@ -4,12 +4,10 @@ const User = require('../models/userModel');
 const Reaction = require('../models/articleReaction');
 const Comment = require('../models/commentModel');
 
-
-
 const articleController = {
   createArticle: async (req, res) => {
     try {
-      const { user_id, title, question, content, community_type } = req.body;
+      const { user_id, title, question, content } = req.body;
       const files = req.files;
       const imgList = files ? files.map(file => file.filename) : [];
 
@@ -19,15 +17,14 @@ const articleController = {
         question,
         content,
         img: imgList.length > 0 ? JSON.stringify(imgList) : null,
-        community_type,
       });
 
-      if (req.body.hashtags) {
-        const hashtags = JSON.parse(req.body.hashtags);
-        const recommendedTags = await tagService.getTagRecommend(user_id, content);
-        const mergedTags = Array.from(new Set([...hashtags, ...recommendedTags]));
-        await tagService.saveTags(article_id, mergedTags);
-      }
+      const userInfo = await User.findById(user_id);
+      const regionTag = userInfo?.village ? [`#${userInfo.village}`] : [];
+      const hashtags = req.body.hashtags ? JSON.parse(req.body.hashtags) : [];
+      const recommendedTags = await tagService.getTagRecommend(user_id, content);
+      const mergedTags = Array.from(new Set([...regionTag, ...hashtags, ...recommendedTags]));
+      await tagService.saveTags(article_id, mergedTags);
 
       res.status(201).json({ article_id });
     } catch (err) {
@@ -103,19 +100,19 @@ const articleController = {
   },
 
   getArticleById: async (req, res) => {
-  try {
-    const id = req.params.id;
-    const article = await Article.findById(id);
-    if (!article) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' });
+    try {
+      const id = req.params.id;
+      const article = await Article.findById(id);
+      if (!article) return res.status(404).json({ error: '게시글을 찾을 수 없습니다.' });
 
-    const tags = await tagService.getTagsByArticleId(id);
-    const commentCount = await Comment.countByArticleId(id); // 추가
+      const tags = await tagService.getTagsByArticleId(id);
+      const commentCount = await Comment.countByArticleId(id);
 
-    res.json({ ...article, tags, commentCount }); // 댓글 수도 포함시켜 응답
-  } catch (err) {
-    console.error('조회 중 오류 발생:', err);
-    res.status(500).json({ error: '조회에 실패했습니다.' });
-  }
+      res.json({ ...article, tags, commentCount });
+    } catch (err) {
+      console.error('조회 중 오류 발생:', err);
+      res.status(500).json({ error: '조회에 실패했습니다.' });
+    }
   },
 
   getArticlesByTag: async (req, res) => {
@@ -130,6 +127,37 @@ const articleController = {
     }
   },
 
+  getArticlesByUser: async (req, res) => {
+    try {
+      const userId = req.query.user_id;
+      if (!userId) return res.status(400).json({ error: 'user_id가 필요합니다.' });
+
+      const articles = await Article.findByUserId(userId);
+
+      const enrichedArticles = await Promise.all(
+        articles.map(async (article) => {
+          const hashtags = await tagService.getTagsByArticleId(article.article_id);
+          const reactionCount = await Reaction.countByArticleId(article.article_id);
+          const commentCount = await Comment.countByArticleId(article.article_id);
+          return {
+            article_id: article.article_id,
+            title: article.title,
+            content: article.content,
+            tags: hashtags,
+            likes: reactionCount,
+            comments: commentCount,
+          };
+        })
+      );
+
+      res.json(enrichedArticles);
+    } catch (err) {
+      console.error("사용자 게시글 조회 실패:", err);
+      res.status(500).json({ error: '사용자 게시글 조회 실패' });
+    }
+  },
+
+  // ✅ AND 조건 다중 태그 검색
   searchArticlesByTags: async (req, res) => {
     try {
       let tags = req.query.tag;
@@ -138,15 +166,8 @@ const articleController = {
 
       if (!Array.isArray(tags)) tags = [tags];
 
-      const tagIdSets = await Promise.all(
-        tags.map(tag => tagService.getArticleIdsByTag(`#${tag}`))
-      );
-
-      const intersection = tagIdSets.reduce((acc, curr) =>
-        acc.filter(id => curr.includes(id))
-      );
-
-      const articles = await Article.findByIds(intersection);
+      const articleIds = await tagService.getArticleIdsByTags(tags);
+      const articles = await Article.findByIds(articleIds);
 
       const enrichedArticles = await Promise.all(
         articles.map(async (article) => {

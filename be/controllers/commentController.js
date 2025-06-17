@@ -1,17 +1,21 @@
 const commentModel = require('../models/commentModel');
 const reactionModel = require('../models/commentReactionModel');
+const db = require('../db'); // 수정/삭제에서 사용됨
 
 // 댓글 등록 처리 함수
 exports.createComment = async (req, res) => {
   try {
     const { user_id, article_id, content, parent_comment_id } = req.body;
 
-    // 필수값 확인
-    if (!user_id || !article_id || !content) {
-      return res.status(400).json({ message: '필수 항목이 빠졌습니다.' });
+    // ✋ 로그인 안 된 사용자는 차단
+    if (!user_id) {
+      return res.status(401).json({ message: '로그인 후 댓글 작성이 가능합니다.' });
     }
 
-    // DB에 댓글 저장
+    if (!article_id || !content) {
+      return res.status(400).json({ message: '필수 항목이 누락되었습니다.' });
+    }
+
     const newCommentId = await commentModel.createComment(
       user_id,
       article_id,
@@ -25,6 +29,7 @@ exports.createComment = async (req, res) => {
     res.status(500).json({ message: '댓글 등록 중 오류가 발생했습니다.' });
   }
 };
+
 
 // 댓글 수 반환 처리 함수
 exports.getCommentCount = async (req, res) => {
@@ -42,22 +47,30 @@ exports.getCommentCount = async (req, res) => {
   }
 };
 
+// 댓글 목록 조회 함수 (공감 수 + 유저 반응 포함)
 exports.getCommentsByArticle = async (req, res) => {
+  const article_id = parseInt(req.query.article_id, 10);
+  const user_id_raw = req.query.user_id;
+
+  const user_id =
+    user_id_raw && !isNaN(parseInt(user_id_raw, 10))
+      ? parseInt(user_id_raw, 10)
+      : null;
+
+  if (!article_id) {
+    return res.status(400).json({ error: 'article_id 필요' });
+  }
+
   try {
-    const article_id = parseInt(req.query.article_id, 10);
-    const user_id = parseInt(req.query.user_id, 10);
-
-    if (!article_id) {
-      return res.status(400).json({ message: 'article_id가 필요합니다.' });
-    }
-
     const comments = await commentModel.findByArticleId(article_id);
 
-    // 댓글별로 공감 수, 유저 공감 붙이기
     const enriched = await Promise.all(
       comments.map(async (comment) => {
         const reactions = await reactionModel.countByCommentId(comment.comment_id);
-        const userReaction = await reactionModel.findUserReaction(user_id, comment.comment_id);
+        const userReaction =
+          user_id !== null
+            ? await reactionModel.findUserReaction(user_id, comment.comment_id)
+            : null;
 
         return {
           ...comment,
@@ -74,6 +87,7 @@ exports.getCommentsByArticle = async (req, res) => {
   }
 };
 
+// 댓글 수정
 exports.updateComment = async (req, res) => {
   const { id } = req.params;
   const { user_id, content } = req.body;
@@ -95,6 +109,7 @@ exports.updateComment = async (req, res) => {
   }
 };
 
+// 댓글 삭제
 exports.deleteComment = async (req, res) => {
   const { id } = req.params;
   const { user_id } = req.body;
